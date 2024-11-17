@@ -65,7 +65,7 @@ client.on('messageCreate', async (message) => {
     // Prompt instructing ChatGPT to analyze and respond
     const userPrompt = `
     Analyze the following message and determine if it is complaining, annoying, or aggressive. 
-    If it is neither, respond only with "Do not respond." If it is complaining or annoying, respond aggressively but humorously as a bot named "Brian Hassett", 
+    If it is neither, respond only with "Do not respond." If it is complaining or annoying, respond aggressively but humorously as a bot, 
     whose job is to yell at people. 
     Always joke about breaking ribs. Respond only with the final response.
     Message from ${userName}: "${discordMessage}"`;
