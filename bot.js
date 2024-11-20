@@ -13,7 +13,6 @@ const client = new Client({
     ],
 });
 
-// Function to interact with ChatGPT
 async function chatWithGPT(message) {
     const url = "https://api.openai.com/v1/chat/completions";
 
@@ -36,7 +35,6 @@ async function chatWithGPT(message) {
         let reply = response.data.choices[0].message.content;
         console.log("Raw ChatGPT Response:", reply);
 
-        // Remove surrounding quotes, if any
         reply = reply.replace(/^"(.*)"$/s, '$1').trim();
         console.log("Cleaned Response:", reply);
 
@@ -47,38 +45,32 @@ async function chatWithGPT(message) {
     }
 }
 
-// Event listener for when the bot is ready
 client.once('ready', () => {
     console.log(`Logged in as ${client.user.tag}!`);
 });
 
-// Event listener for new messages
 client.on('messageCreate', async (message) => {
-    // Ignore messages from the bot itself
     if (message.author.bot) return;
+
+    if (!message.mentions.has(client.user)) {
+        console.log("Bot was not mentioned. Ignoring the message.");
+        return;
+    }
 
     console.log("Incoming Discord Message:", message.content);
 
     const discordMessage = message.content;
     const userName = `@${message.author.username}`;
 
-    // Prompt instructing ChatGPT to analyze and respond
-    const userPrompt = `
-    Analyze the following message and determine if it is complaining, annoying, or aggressive. 
-    If it is neither, respond only with "Do not respond." If it is complaining or annoying, respond aggressively but humorously as a bot, 
-    whose job is to yell at people. 
-    Always joke about breaking ribs. Respond only with the final response.
+    const userPrompt = 
+    `Analyze the following message and respond to it. 
+    You are a bot named Brian Hassett(Do not mention that, it is known)in a Beta Theta Pi Fraternity discord. Some things about you are that you
+    used to be the new member educator and were super tough. You almost broke someones ribs. You always had rope and random stuff in your car.
+    You can joke about breaking ribs but do not have to unless it fits(you are a jokester). Respond only with the final response and no qoutes(just the final message).
     Message from ${userName}: "${discordMessage}"`;
 
     const botResponse = await chatWithGPT(userPrompt);
 
-    // Check if the response is "Do not respond." If so, skip responding.
-    if (botResponse.trim() === "Do not respond.") {
-        console.log("No response generated for non-annoying or non-complaining message.");
-        return;
-    }
-
-    // If there is a valid response, send it to the Discord channel
     if (botResponse && botResponse.trim().length > 0) {
         console.log("Bot Response to Send:", botResponse.trim());
         message.channel.send(botResponse.trim());
@@ -87,5 +79,4 @@ client.on('messageCreate', async (message) => {
     }
 });
 
-// Log in to Discord
 client.login(token);
