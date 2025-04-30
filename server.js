@@ -20,7 +20,7 @@ app.post("/interactions", express.raw({ type: "application/json" }), async (req,
   const timestamp = req.headers["x-signature-timestamp"];
 
   const isVerified = nacl.sign.detached.verify(
-    Buffer.from(timestamp + req.body),
+    Buffer.concat([Buffer.from(timestamp), req.body]),
     Buffer.from(signature, "hex"),
     Buffer.from(PUBLIC_KEY, "hex")
   );
