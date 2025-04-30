@@ -8,6 +8,7 @@ const app = express();
 const PORT = process.env.PORT || 3000;
 const PUBLIC_KEY = process.env.DISCORD_PUBLIC_KEY;
 
+// Only for Discord signature verification
 app.post(
   "/interactions",
   express.raw({ type: "application/json" }),
@@ -17,14 +18,25 @@ app.post(
     const signature = req.headers["x-signature-ed25519"];
     const timestamp = req.headers["x-signature-timestamp"];
 
-    if (!signature || !timestamp || !req.body) {
-      console.log("❌ Missing signature, timestamp, or body");
-      return res.status(400).send("Missing required headers or body");
+    // Log body type and content for debugging
+    console.log("🔍 req.body type:", typeof req.body);
+    console.log("🔍 req.body instance:", req.body instanceof Buffer);
+    console.log("🔍 Signature:", signature);
+    console.log("🔍 Timestamp:", timestamp);
+
+    if (!signature || !timestamp || !req.body || !(req.body instanceof Buffer)) {
+      console.log("❌ Missing or invalid signature/timestamp/body");
+      return res.status(400).send("Missing or invalid headers/body");
     }
 
     try {
+      const message = Buffer.concat([
+        Buffer.from(timestamp, "utf-8"),
+        req.body,
+      ]);
+
       const isVerified = nacl.sign.detached.verify(
-        Buffer.concat([Buffer.from(timestamp, "utf-8"), req.body]),
+        message,
         Buffer.from(signature, "hex"),
         Buffer.from(PUBLIC_KEY, "hex")
       );
@@ -50,6 +62,7 @@ app.post(
   }
 );
 
+// Health check
 app.get("/", (req, res) => {
   res.send("✅ BrianBot is running!");
 });
