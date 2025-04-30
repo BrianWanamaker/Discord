@@ -1,17 +1,14 @@
 {
-  "name": "discord-bot",
+  "name": "discord-bot-sigma-hazel",
   "version": "1.0.0",
-  "description": "",
-  "main": "index.js",
+  "type": "module",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "start": "node server.js"
   },
-  "keywords": [],
-  "author": "",
-  "license": "ISC",
   "dependencies": {
-    "axios": "^1.7.7",
-    "discord.js": "^14.16.3",
-    "dotenv": "^16.4.5"
+    "axios": "^1.9.0",
+    "dotenv": "^16.3.1",
+    "express": "^4.18.2",
+    "tweetnacl": "^1.0.3"
   }
 }
