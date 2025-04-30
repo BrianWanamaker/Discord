@@ -1,10 +1,12 @@
-const { REST, Routes } = require('discord.js');
-require('dotenv').config();
+import { REST, Routes } from 'discord.js';
+import dotenv from 'dotenv';
+
+dotenv.config();
 
 const commands = [
   {
     name: 'talk',
-    description: 'Talk to BrianBot using Gemini AI',
+    description: 'Talk to Oliver',
     options: [
       {
         name: 'message',
@@ -24,7 +26,7 @@ const rest = new REST({ version: '10' }).setToken(process.env.DISCORD_BOT_TOKEN)
 
     await rest.put(
       Routes.applicationGuildCommands(process.env.CLIENT_ID, process.env.GUILD_ID),
-      { body: commands },
+      { body: commands }
     );
 
     console.log('Successfully reloaded application (/) commands.');
