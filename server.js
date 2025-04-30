@@ -1,3 +1,4 @@
+// server.js
 import express from "express";
 import nacl from "tweetnacl";
 import axios from "axios";
@@ -6,39 +7,42 @@ import dotenv from "dotenv";
 dotenv.config();
 
 const app = express();
-app.use(express.json({ verify: (req, res, buf) => { req.rawBody = buf; } }));
-
 const PORT = process.env.PORT || 3000;
 
-const PUBLIC_KEY = process.env.DISCORD_PUBLIC_KEY;
 const GEMINI_API_KEY = process.env.GEMINI_API_KEY;
+const PUBLIC_KEY = process.env.DISCORD_PUBLIC_KEY;
+
 const GEMINI_URL = `https://generativelanguage.googleapis.com/v1/models/gemini-1.5-pro:generateContent?key=${GEMINI_API_KEY}`;
 
-function verifyDiscordRequest(req) {
+// Use raw body for signature verification
+app.post("/interactions", express.raw({ type: "application/json" }), async (req, res) => {
   const signature = req.headers["x-signature-ed25519"];
   const timestamp = req.headers["x-signature-timestamp"];
-  const isValid = nacl.sign.detached.verify(
-    Buffer.from(timestamp + req.rawBody),
+
+  const isVerified = nacl.sign.detached.verify(
+    Buffer.from(timestamp + req.body),
     Buffer.from(signature, "hex"),
     Buffer.from(PUBLIC_KEY, "hex")
   );
-  return isValid;
-}
 
-app.post("/interactions", async (req, res) => {
-  if (!verifyDiscordRequest(req)) {
+  if (!isVerified) {
+    console.log("❌ Signature verification failed");
     return res.status(401).send("Bad request signature");
   }
 
-  const body = req.body;
+  const body = JSON.parse(req.body.toString("utf-8"));
 
+  // Discord PING verification
   if (body.type === 1) {
+    console.log("✅ Responding to Discord PING");
     return res.status(200).json({ type: 1 });
   }
 
   if (body.data?.name === "talk") {
     const userInput = body.data.options[0]?.value || "Hello!";
     const userName = body.member.user.username;
+
+    res.status(200).json({ type: 5 }); // Acknowledge request
 
     const prompt = `
 Analyze the following message and respond to it. 
@@ -50,34 +54,40 @@ Respond only with the final response, no quotes.
 Message from @${userName}: "${userInput}"
 `;
 
-    // Respond to Discord quickly
-    res.status(200).json({ type: 5 });
-
     try {
-      const geminiResponse = await axios.post(GEMINI_URL, {
-        contents: [{ parts: [{ text: prompt }] }],
-      }, {
-        headers: { "Content-Type": "application/json" },
-        timeout: 10000,
-      });
+      const geminiResponse = await axios.post(
+        GEMINI_URL,
+        {
+          contents: [{ parts: [{ text: prompt }] }],
+        },
+        {
+          headers: { "Content-Type": "application/json" },
+        }
+      );
 
-      const geminiText =
-        geminiResponse.data?.candidates?.[0]?.content?.parts?.[0]?.text || "Gemini gave no response.";
+      const text = geminiResponse.data?.candidates?.[0]?.content?.parts?.[0]?.text || "Gemini gave no response.";
 
       await axios.post(
         `https://discord.com/api/v10/webhooks/${body.application_id}/${body.token}`,
-        { content: geminiText.trim() }
+        { content: text.trim() }
       );
     } catch (err) {
-      console.error("❌ Gemini error:", err.response?.data || err.message);
+      console.error("❌ Gemini/Webhook error:", err.response?.data || err.message);
       await axios.post(
         `https://discord.com/api/v10/webhooks/${body.application_id}/${body.token}`,
-        { content: "❌ Gemini failed." }
+        { content: "❌ Gemini failed to respond." }
       );
     }
+  } else {
+    res.status(400).send("Unknown command");
   }
 });
 
+// Health check route
+app.get("/", (req, res) => {
+  res.send("BrianBot is running!");
+});
+
 app.listen(PORT, () => {
-  console.log(`🚀 BrianBot server running on port ${PORT}`);
+  console.log(`🚀 Server is live at http://localhost:${PORT}`);
 });
